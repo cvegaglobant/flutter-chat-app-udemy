@@ -1,8 +1,11 @@
+import 'package:chatapp/helpers/mostrar_alerta.dart';
+import 'package:chatapp/services/auth_service.dart';
 import 'package:chatapp/widgets/btn_azul.dart';
 import 'package:chatapp/widgets/custom_input.dart';
 import 'package:chatapp/widgets/custom_labels.dart';
 import 'package:chatapp/widgets/custom_logo.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class RegisterPage extends StatelessWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -56,6 +59,7 @@ class __FormularioState extends State<_Formulario> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
     return Container(
       margin: const EdgeInsets.only(top: 40),
       padding: const EdgeInsets.symmetric(horizontal: 50),
@@ -78,9 +82,29 @@ class __FormularioState extends State<_Formulario> {
             textController: passController,
             isPassword: true,
           ),
-          BotonAzul(
-            text: 'Ingrese',
-            onPressed: () {},
+          Consumer<AuthService>(
+            builder: (context, value, child) {
+              return BotonAzul(
+                text: 'Crear cuenta',
+                onPressed: value.autenticando
+                    ? null
+                    : () async {
+                        FocusScope.of(context).unfocus();
+                        final registerOk = await authService.register(
+                            userController.text.trim(),
+                            emailController.text.trim(),
+                            passController.text.trim());
+                        if (registerOk) {
+                          //TODO: Conectar al socket server
+                          Navigator.pushReplacementNamed(context, 'usuarios');
+                        } else {
+                          //Mostrar Alerta
+                          mostrarAlerta(context, 'Registro incorrecto.',
+                              value.mensajeRegistro);
+                        }
+                      },
+              );
+            },
           ),
         ],
       ),

@@ -1,5 +1,7 @@
 import 'package:chatapp/models/usuario.dart';
+import 'package:chatapp/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class UsuariosPage extends StatefulWidget {
@@ -11,10 +13,10 @@ class UsuariosPage extends StatefulWidget {
 
 class _UsuariosPageState extends State<UsuariosPage> {
   final usuarios = [
-    Usuario(online: true, email: 'test1@test.com', nombre: 'Maria', uuid: '1'),
-    Usuario(online: true, email: 'test2@test.com', nombre: 'Carlos', uuid: '2'),
+    Usuario(online: true, email: 'test1@test.com', nombre: 'Maria', uid: '1'),
+    Usuario(online: true, email: 'test2@test.com', nombre: 'Carlos', uid: '2'),
     Usuario(
-        online: false, email: 'test3@test.com', nombre: 'Fernando', uuid: '3'),
+        online: false, email: 'test3@test.com', nombre: 'Fernando', uid: '3'),
   ];
 
   RefreshController _refreshController =
@@ -22,17 +24,26 @@ class _UsuariosPageState extends State<UsuariosPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Mi nombre',
-          style: TextStyle(
-            color: Colors.black54,
-          ),
+        title: Consumer<AuthService>(
+          builder: (context, auth, child) {
+            return Text(
+              auth.usuario.nombre,
+              style: const TextStyle(
+                color: Colors.black54,
+              ),
+            );
+          },
         ),
         backgroundColor: Colors.white,
         leading: IconButton(
-          onPressed: () {},
+          onPressed: () {
+            //TODO: desconectar del socket server
+            AuthService.deleteToken();
+            Navigator.pushReplacementNamed(context, 'login');
+          },
           icon: const Icon(
             Icons.exit_to_app,
             color: Colors.black54,

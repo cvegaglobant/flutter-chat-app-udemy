@@ -1,8 +1,13 @@
+import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+
+import 'package:chatapp/services/auth_service.dart';
+import 'package:chatapp/helpers/mostrar_alerta.dart';
+
 import 'package:chatapp/widgets/btn_azul.dart';
 import 'package:chatapp/widgets/custom_input.dart';
 import 'package:chatapp/widgets/custom_labels.dart';
 import 'package:chatapp/widgets/custom_logo.dart';
-import 'package:flutter/material.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -56,6 +61,7 @@ class __FormularioState extends State<_Formulario> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
     return Container(
       margin: const EdgeInsets.only(top: 40),
       padding: const EdgeInsets.symmetric(horizontal: 50),
@@ -73,9 +79,28 @@ class __FormularioState extends State<_Formulario> {
             textController: passController,
             isPassword: true,
           ),
-          BotonAzul(
-            text: 'Ingrese',
-            onPressed: () {},
+          Consumer<AuthService>(
+            builder: (context, value, child) {
+              return BotonAzul(
+                text: 'Ingrese',
+                onPressed: value.autenticando
+                    ? null
+                    : () async {
+                        FocusScope.of(context).unfocus();
+                        final loginOk = await authService.login(
+                            emailController.text.trim(),
+                            passController.text.trim());
+                        if (loginOk) {
+                          //TODO: Conectar a nuestro socket server
+                          Navigator.pushReplacementNamed(context, 'usuarios');
+                        } else {
+                          //Mostrar Alerta
+                          mostrarAlerta(context, 'Login incorrecto.',
+                              'Revise sus credenciales.');
+                        }
+                      },
+              );
+            },
           ),
         ],
       ),
