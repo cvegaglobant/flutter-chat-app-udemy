@@ -1,8 +1,14 @@
 import 'dart:io';
-
-import 'package:chatapp/widgets/chat_message.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+
+import 'package:chatapp/services/auth_service.dart';
+import 'package:chatapp/services/chat_service.dart';
+import 'package:chatapp/services/socket_service.dart';
+
+import 'package:chatapp/models/mensajes_response.dart';
+import 'package:chatapp/widgets/chat_message.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -15,8 +21,54 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final _focusNode = FocusNode();
   bool _estaEscribiendo = false;
+  late ChatService chatService;
+  late SocketService socketService;
+  late AuthService authService;
 
   final List<ChatMessage> _messages = [];
+
+  @override
+  void initState() {
+    chatService = Provider.of<ChatService>(context, listen: false);
+    socketService = Provider.of<SocketService>(context, listen: false);
+    authService = Provider.of<AuthService>(context, listen: false);
+    super.initState();
+
+    socketService.socket.on('mensaje-personal', escucharMensaje);
+
+    _cargarHistorial(chatService.usuarioPara.uid);
+  }
+
+  void _cargarHistorial(String usuarioId) async {
+    List<Mensaje> chat = await chatService.getChat(usuarioId);
+    final history = chat.map((m) => ChatMessage(
+          texto: m.mensaje,
+          uuid: m.de,
+          animationController: AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 200),
+          )..forward(),
+        ));
+    setState(() {
+      _messages.insertAll(0, history);
+    });
+  }
+
+  escucharMensaje(dynamic payload) {
+    final ChatMessage message = ChatMessage(
+      texto: payload['mensaje'],
+      uuid: payload['de'],
+      animationController: AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 200),
+      ),
+    );
+
+    setState(() {
+      _messages.insert(0, message);
+      message.animationController.forward();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +160,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _focusNode.requestFocus();
     final ChatMessage message = ChatMessage(
       texto: texto,
-      uuid: '123',
+      uuid: authService.usuario.uid,
       animationController: AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 200),
@@ -119,14 +171,23 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       message.animationController.forward();
       _estaEscribiendo = false;
     });
+
+    socketService.emit(
+      'mensaje-personal',
+      {
+        'de': authService.usuario.uid,
+        'para': chatService.usuarioPara.uid,
+        'mensaje': texto,
+      },
+    );
   }
 
   @override
   void dispose() {
-    // TODO: off del socket
     for (var item in _messages) {
       item.animationController.dispose();
     }
+    socketService.socket.off('mensaje-personal');
     super.dispose();
   }
 }
@@ -138,27 +199,31 @@ class _AppBarContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        CircleAvatar(
-          maxRadius: 14,
-          child: const Text(
-            'Te',
-            style: TextStyle(
-              fontSize: 12,
+    return Consumer<ChatService>(
+      builder: (context, value, child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              maxRadius: 14,
+              child: Text(
+                value.usuarioPara.nombre.substring(0, 2),
+                style: const TextStyle(
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor: Colors.blue.shade100,
             ),
-          ),
-          backgroundColor: Colors.blue.shade100,
-        ),
-        const SizedBox(
-          height: 3,
-        ),
-        const Text(
-          'Melissa florez',
-          style: TextStyle(color: Colors.black87, fontSize: 10),
-        )
-      ],
+            const SizedBox(
+              height: 3,
+            ),
+            Text(
+              value.usuarioPara.nombre,
+              style: const TextStyle(color: Colors.black87, fontSize: 10),
+            )
+          ],
+        );
+      },
     );
   }
 }

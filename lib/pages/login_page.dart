@@ -1,3 +1,4 @@
+import 'package:chatapp/services/socket_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
@@ -62,6 +63,7 @@ class __FormularioState extends State<_Formulario> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
+    final socketService = Provider.of<SocketService>(context, listen: false);
     return Container(
       margin: const EdgeInsets.only(top: 40),
       padding: const EdgeInsets.symmetric(horizontal: 50),
@@ -91,7 +93,7 @@ class __FormularioState extends State<_Formulario> {
                             emailController.text.trim(),
                             passController.text.trim());
                         if (loginOk) {
-                          //TODO: Conectar a nuestro socket server
+                          socketService.connect();
                           Navigator.pushReplacementNamed(context, 'usuarios');
                         } else {
                           //Mostrar Alerta
